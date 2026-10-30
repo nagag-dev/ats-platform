@@ -12,6 +12,19 @@ enum UserRole {
   RECRUITER
 }
 
+enum RequirementStatus {
+  OPEN
+  ON_HOLD
+  CLOSED
+}
+
+enum EmploymentType {
+  FULL_TIME
+  CONTRACT
+  CONTRACT_TO_HIRE
+  INTERNSHIP
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -21,4 +34,76 @@ model User {
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  // Requirements created by this user
+  createdRequirements Requirement[] @relation("RequirementCreatedBy")
+
+  // Requirements assigned to this recruiter
+  requirementAssignments RequirementAssignment[] @relation("RequirementAssignee")
+
+  // Assignments made by this user (Admin)
+  assignmentsMade RequirementAssignment[] @relation("RequirementAssignedBy")
+}
+
+model Requirement {
+  id String @id @default(cuid())
+
+  // Business-facing identifiers
+  referenceId     String @unique
+  requirementCode String @unique
+
+  // Job information
+  jobTitle       String
+  clientName     String
+  location       String
+  employmentType EmploymentType
+  minExperience  Int?
+  maxExperience  Int?
+  skills         String[]
+  openings       Int            @default(1)
+  description    String
+
+  // Requirement lifecycle
+  status RequirementStatus @default(OPEN)
+
+  // Admin who created the requirement
+  createdById String
+  createdBy   User   @relation("RequirementCreatedBy", fields: [createdById], references: [id])
+
+  // Multiple recruiters can share one requirement
+  assignments RequirementAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([clientName])
+  @@index([createdById])
+}
+
+model RequirementAssignment {
+  id String @id @default(cuid())
+
+  requirementId String
+  recruiterId   String
+  assignedById  String
+
+  requirement Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+
+  recruiter User @relation("RequirementAssignee", fields: [recruiterId], references: [id])
+
+  assignedBy User @relation("RequirementAssignedBy", fields: [assignedById], references: [id])
+
+  isActive   Boolean  @default(true)
+  assignedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Prevent duplicate assignments
+  @@unique([requirementId, recruiterId])
+  @@index([recruiterId, isActive])
+}
+
+model RequirementSequence {
+  key       String @id
+  nextValue Int    @default(1)
 }
