@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import SignOutButton from "@/app/sign-out-button";
 
+export const instant = false;
+
+
 export default async function RecruiterPage() {
   const session = await auth();
 
@@ -20,7 +23,18 @@ export default async function RecruiterPage() {
       isActive: true,
     },
     include: {
-      requirement: true,
+      requirement: {
+        include: {
+          statusHistory: {
+            orderBy: { createdAt: "desc" },
+            include: {
+              changedBy: {
+                select: { name: true, email: true },
+              },
+            },
+          },
+        },
+      },
     },
     orderBy: {
       assignedAt: "desc",
@@ -124,6 +138,47 @@ export default async function RecruiterPage() {
                     <p className="mt-1 whitespace-pre-wrap text-slate-700">
                       {requirement.description}
                     </p>
+                  </div>
+
+                  <div className="mt-6 border-t border-slate-200 pt-5">
+                    <h4 className="text-lg font-semibold text-slate-900">
+                      Requirement Status History
+                    </h4>
+
+                    {requirement.statusHistory.length === 0 ? (
+                      <p className="mt-3 text-sm text-slate-500">
+                        No status changes recorded.
+                      </p>
+                    ) : (
+                      <div className="mt-4 space-y-4">
+                        {requirement.statusHistory.map((history) => (
+                          <div
+                            key={history.id}
+                            className="rounded-lg border border-slate-200 bg-slate-50 p-4"
+                          >
+                            <p className="font-semibold text-slate-900">
+                              {history.previousStatus} → {history.newStatus}
+                            </p>
+
+                            <p className="mt-2 text-sm text-slate-600">
+                              <span className="font-medium">Reason:</span>{" "}
+                              {history.reason}
+                            </p>
+
+                            <p className="mt-2 text-sm text-slate-600">
+                              <span className="font-medium">Changed by:</span>{" "}
+                              {history.changedBy.name} ({history.changedBy.email})
+                            </p>
+
+                            <p className="mt-1 text-sm text-slate-500">
+                              {history.createdAt.toLocaleString("en-IN", {
+                                timeZone: "Asia/Kolkata",
+                              })}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </article>
               );

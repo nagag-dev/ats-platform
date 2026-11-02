@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { RequirementStatus } from "@/generated/prisma/enums";
 import { NextResponse } from "next/server";
 
 const employmentTypes = [
@@ -379,6 +380,14 @@ export async function GET() {
         createdBy: {
           select: { name: true, email: true },
         },
+        statusHistory: {
+          orderBy: { createdAt: "desc" },
+          include: {
+            changedBy: {
+              select: { name: true, email: true },
+            },
+          },
+        },
       },
     });
 
@@ -388,6 +397,133 @@ export async function GET() {
 
     return NextResponse.json(
       { error: "Unable to load requirements right now." },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "You must log in first." },
+        { status: 401 },
+      );
+    }
+
+    if (session.user.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Only Admin users can change requirement status." },
+        { status: 403 },
+      );
+    }
+
+    let body: unknown;
+
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON request body." },
+        { status: 400 },
+      );
+    }
+
+    if (!isObject(body)) {
+      return NextResponse.json(
+        { error: "Request body must be a JSON object." },
+        { status: 400 },
+      );
+    }
+
+    const { requirementId, newStatus, reason } = body;
+
+    if (!isValidText(requirementId, 100)) {
+      return NextResponse.json(
+        { error: "A valid requirement ID is required." },
+        { status: 400 },
+      );
+    }
+
+    const allowedStatuses = Object.values(RequirementStatus);
+
+    if (
+      typeof newStatus !== "string" ||
+      !allowedStatuses.includes(newStatus as RequirementStatus)
+    ) {
+      return NextResponse.json(
+        { error: "Invalid requirement status." },
+        { status: 400 },
+      );
+    }
+
+    if (!isValidText(reason, 1000)) {
+      return NextResponse.json(
+        { error: "Please provide a reason for the status change." },
+        { status: 400 },
+      );
+    }
+
+    const typedNewStatus = newStatus as RequirementStatus;
+
+    const result = await prisma.$transaction(async (tx) => {
+      const requirement = await tx.requirement.findUnique({
+        where: { id: requirementId },
+        select: { id: true, status: true, jobTitle: true },
+      });
+
+      if (!requirement) {
+        throw new Error("REQUIREMENT_NOT_FOUND");
+      }
+
+      if (requirement.status === newStatus) {
+        throw new Error("STATUS_UNCHANGED");
+      }
+
+      const updatedRequirement = await tx.requirement.update({
+        where: { id: requirementId },
+        data: { status: typedNewStatus },
+      });
+
+      const history = await tx.requirementStatusHistory.create({
+        data: {
+          requirementId,
+          previousStatus: requirement.status,
+          newStatus: typedNewStatus,
+          reason: reason.trim(),
+          changedById: session.user.id,
+        },
+      });
+
+      return { updatedRequirement, history };
+    });
+
+    return NextResponse.json({
+      message: "Requirement status updated successfully.",
+      requirement: result.updatedRequirement,
+      history: result.history,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === "REQUIREMENT_NOT_FOUND") {
+      return NextResponse.json(
+        { error: "Requirement not found." },
+        { status: 404 },
+      );
+    }
+
+    if (error instanceof Error && error.message === "STATUS_UNCHANGED") {
+      return NextResponse.json(
+        { error: "The requirement already has this status." },
+        { status: 400 },
+      );
+    }
+
+    console.error("Update requirement status failed:", error);
+
+    return NextResponse.json(
+      { error: "Unable to update requirement status right now." },
       { status: 500 },
     );
   }

@@ -17,6 +17,9 @@ export default function CreateRequirementForm() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [recruiterSearch, setRecruiterSearch] = useState("");
+  const [selectedRecruiterIds, setSelectedRecruiterIds] = useState<string[]>([]);
+
 
   useEffect(() => {
     async function loadRecruiters() {
@@ -63,6 +66,12 @@ export default function CreateRequirementForm() {
       .getAll("recruiterIds")
       .map(String);
 
+    if (recruiterIds.length === 0) {
+      setError("Please select at least one recruiter.");
+      setSubmitting(false);
+      return;
+    }
+
     const payload = {
       referenceId: String(formData.get("referenceId") ?? "").trim(),
       jobTitle: String(formData.get("jobTitle") ?? "").trim(),
@@ -96,6 +105,8 @@ export default function CreateRequirementForm() {
       );
 
       form.reset();
+      setSelectedRecruiterIds([]);
+      setRecruiterSearch("");
       router.refresh();
     } catch {
       setError("Could not connect to the server. Please try again.");
@@ -277,9 +288,7 @@ export default function CreateRequirementForm() {
         </div>
 
         <div>
-          <label htmlFor="recruiterIds" className={labelClass}>
-            Assign Recruiters
-          </label>
+          <p className={labelClass}>Assign Recruiters</p>
 
           {loadingRecruiters ? (
             <p className="text-sm text-slate-500">
@@ -290,24 +299,78 @@ export default function CreateRequirementForm() {
               No active recruiters found. Create a recruiter account first.
             </p>
           ) : (
-            <>
-              <select
-                id="recruiterIds"
-                name="recruiterIds"
-                multiple
-                required
-                className={`${inputClass} min-h-36`}
-              >
-                {recruiters.map((recruiter) => (
-                  <option key={recruiter.id} value={recruiter.id}>
-                    {recruiter.name} — {recruiter.email}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-1 text-xs text-slate-500">
-                Hold Command on Mac while clicking to select multiple recruiters.
+            <div className="space-y-3">
+              <input
+                type="search"
+                value={recruiterSearch}
+                onChange={(event) => setRecruiterSearch(event.target.value)}
+                placeholder="Search recruiters by name or email..."
+                aria-label="Search recruiters by name or email"
+                className={inputClass}
+              />
+
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium text-slate-700">
+                  Available recruiters ({recruiters.length})
+                </span>
+                <span className="font-medium text-blue-700">
+                  Selected: {selectedRecruiterIds.length}
+                </span>
+              </div>
+
+              <div className="max-h-64 space-y-1 overflow-y-auto rounded-lg border border-slate-300 p-3">
+                {recruiters
+                  .filter((recruiter) => {
+                    const search = recruiterSearch.trim().toLowerCase();
+                    return (
+                      recruiter.name.toLowerCase().includes(search) ||
+                      recruiter.email.toLowerCase().includes(search)
+                    );
+                  })
+                  .map((recruiter) => (
+                    <label
+                      key={recruiter.id}
+                      className="flex cursor-pointer items-center gap-3 rounded-lg p-2 hover:bg-slate-50"
+                    >
+                      <input
+                        type="checkbox"
+                        name="recruiterIds"
+                        value={recruiter.id}
+                        checked={selectedRecruiterIds.includes(recruiter.id)}
+                        onChange={(event) => {
+                          setSelectedRecruiterIds((current) =>
+                            event.target.checked
+                              ? [...current, recruiter.id]
+                              : current.filter((id) => id !== recruiter.id)
+                          );
+                        }}
+                        className="h-4 w-4 rounded border-slate-300"
+                      />
+                      <span className="text-sm text-slate-800">
+                        <span className="font-medium">{recruiter.name}</span>
+                        <span className="text-slate-500"> — {recruiter.email}</span>
+                      </span>
+                    </label>
+                  ))}
+
+                {recruiters.filter((recruiter) => {
+                  const search = recruiterSearch.trim().toLowerCase();
+                  return (
+                    recruiter.name.toLowerCase().includes(search) ||
+                    recruiter.email.toLowerCase().includes(search)
+                  );
+                }).length === 0 && (
+                  <p className="p-2 text-sm text-slate-500">
+                    No recruiters match your search.
+                  </p>
+                )}
+              </div>
+
+              <p className="text-xs text-slate-500">
+                Select one or more recruiters using the checkboxes. You can
+                search by name or email.
               </p>
-            </>
+            </div>
           )}
         </div>
 

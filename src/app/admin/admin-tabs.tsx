@@ -1,13 +1,22 @@
 "use client";
 
 import { useState } from "react";
+
 import CreateRecruiterForm from "./create-recruiter-form";
 import CreateRequirementForm from "./create-requirement-form";
+import ManageRequirements from "./manage-requirements";
 
-type Tab = "recruiter" | "requirement";
+type Tab = "recruiter" | "requirement" | "manage";
 
 export default function AdminTabs() {
   const [activeTab, setActiveTab] = useState<Tab>("recruiter");
+
+  const tabClass = (tab: Tab) =>
+    `rounded-t-lg px-6 py-3 font-semibold ${
+      activeTab === tab
+        ? "border-b-2 border-blue-700 bg-blue-50 text-blue-700"
+        : "text-slate-600 hover:bg-slate-100"
+    }`;
 
   return (
     <section className="mt-8">
@@ -22,11 +31,7 @@ export default function AdminTabs() {
           aria-selected={activeTab === "recruiter"}
           aria-controls="recruiter-panel"
           onClick={() => setActiveTab("recruiter")}
-          className={`rounded-t-lg px-6 py-3 font-semibold ${
-            activeTab === "recruiter"
-              ? "border-b-2 border-blue-700 bg-blue-50 text-blue-700"
-              : "text-slate-600 hover:bg-slate-100"
-          }`}
+          className={tabClass("recruiter")}
         >
           Create Recruiter
         </button>
@@ -37,13 +42,20 @@ export default function AdminTabs() {
           aria-selected={activeTab === "requirement"}
           aria-controls="requirement-panel"
           onClick={() => setActiveTab("requirement")}
-          className={`rounded-t-lg px-6 py-3 font-semibold ${
-            activeTab === "requirement"
-              ? "border-b-2 border-blue-700 bg-blue-50 text-blue-700"
-              : "text-slate-600 hover:bg-slate-100"
-          }`}
+          className={tabClass("requirement")}
         >
           Create Requirement
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "manage"}
+          aria-controls="manage-panel"
+          onClick={() => setActiveTab("manage")}
+          className={tabClass("manage")}
+        >
+          Manage Requirements
         </button>
       </div>
 
@@ -61,6 +73,14 @@ export default function AdminTabs() {
         hidden={activeTab !== "requirement"}
       >
         <CreateRequirementForm />
+      </div>
+
+      <div
+        role="tabpanel"
+        id="manage-panel"
+        hidden={activeTab !== "manage"}
+      >
+        <ManageRequirements />
       </div>
     </section>
   );
