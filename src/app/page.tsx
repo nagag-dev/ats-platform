@@ -3,7 +3,7 @@
 import { useState } from "react";
 import LoginForm from "./login-form";
 
-type LoginRole = "ADMIN" | "RECRUITER";
+type LoginRole = "ADMIN" | "RECRUITER" | "VENDOR";
 
 export default function Home() {
   const [selectedRole, setSelectedRole] = useState<LoginRole | null>(null);
@@ -25,7 +25,9 @@ export default function Home() {
               ? "Administrator Portal"
               : selectedRole === "RECRUITER"
                 ? "Recruiter Portal"
-                : "Choose your login"}
+                : selectedRole === "VENDOR"
+                  ? "Vendor Portal"
+                  : "Choose your login"}
           </p>
         </div>
 
@@ -45,6 +47,14 @@ export default function Home() {
               className="w-full rounded-lg bg-indigo-600 px-4 py-4 font-semibold text-white hover:bg-indigo-700"
             >
               Login as Recruiter
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedRole("VENDOR")}
+              className="w-full rounded-lg bg-slate-700 px-4 py-4 font-semibold text-white hover:bg-slate-800"
+            >
+              Login as Vendor
             </button>
           </div>
         ) : (

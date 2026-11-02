@@ -37,9 +37,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const user = await prisma.user.findUnique({
           where: { email },
+          include: {
+            vendorProfile: true,
+          },
         });
 
         if (!user || !user.isActive) {
+          return null;
+        }
+
+        // Vendors can log in only after their account is activated.
+        if (
+          user.role === "VENDOR" &&
+          user.vendorProfile?.status !== "ACTIVE"
+        ) {
           return null;
         }
 
@@ -75,7 +86,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.userId as string;
-        session.user.role = token.role as "ADMIN" | "RECRUITER";
+        session.user.role = token.role as "ADMIN" | "RECRUITER" | "VENDOR";
       }
 
       return session;

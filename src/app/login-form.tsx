@@ -3,7 +3,7 @@
 import { signIn, signOut } from "next-auth/react";
 import { useState, type FormEvent } from "react";
 
-type LoginRole = "ADMIN" | "RECRUITER";
+type LoginRole = "ADMIN" | "RECRUITER" | "VENDOR";
 
 type LoginFormProps = {
   selectedRole: LoginRole;
@@ -52,16 +52,25 @@ export default function LoginForm({
         await signOut({ redirect: false });
         setError(
           `This account does not have the ${
-            selectedRole === "ADMIN" ? "Admin" : "Recruiter"
+            selectedRole === "ADMIN"
+              ? "Admin"
+              : selectedRole === "RECRUITER"
+                ? "Recruiter"
+                : "Vendor"
           } role. Please use the correct login option.`
         );
         setLoading(false);
         return;
       }
 
-      window.location.assign(
-        selectedRole === "ADMIN" ? "/admin" : "/recruiter"
-      );
+      const dashboardPath =
+        selectedRole === "ADMIN"
+          ? "/admin"
+          : selectedRole === "RECRUITER"
+            ? "/recruiter"
+            : "/vendor";
+
+      window.location.assign(dashboardPath);
     } catch {
       setError("Unable to log in right now. Please try again.");
       setLoading(false);
@@ -71,7 +80,11 @@ export default function LoginForm({
   return (
     <div>
       <h2 className="mb-5 text-center text-xl font-semibold text-slate-800">
-        {selectedRole === "ADMIN" ? "Admin Login" : "Recruiter Login"}
+        {selectedRole === "ADMIN"
+          ? "Admin Login"
+          : selectedRole === "RECRUITER"
+            ? "Recruiter Login"
+            : "Vendor Login"}
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-5">

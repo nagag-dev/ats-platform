@@ -10,6 +10,13 @@ datasource db {
 enum UserRole {
   ADMIN
   RECRUITER
+  VENDOR
+}
+
+enum VendorStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
 }
 
 enum RequirementStatus {
@@ -46,8 +53,42 @@ model User {
   requirementAssignments RequirementAssignment[] @relation("RequirementAssignee")
 
   // Assignments made by this user (Admin)
-  assignmentsMade RequirementAssignment[] @relation("RequirementAssignedBy")
+  assignmentsMade          RequirementAssignment[]    @relation("RequirementAssignedBy")
   requirementStatusChanges RequirementStatusHistory[] @relation("RequirementStatusChangedBy")
+
+  vendorProfile     VendorProfile?
+  vendorInvitations VendorInvitation[]
+}
+
+model VendorProfile {
+  id          String       @id @default(cuid())
+  userId      String       @unique
+  companyName String
+  contactName String
+  phone       String?
+  status      VendorStatus @default(INVITED)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyName])
+  @@index([status])
+}
+
+model VendorInvitation {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Requirement {
@@ -76,7 +117,7 @@ model Requirement {
   createdBy   User   @relation("RequirementCreatedBy", fields: [createdById], references: [id])
 
   // Multiple recruiters can share one requirement
-  assignments RequirementAssignment[]
+  assignments   RequirementAssignment[]
   statusHistory RequirementStatusHistory[]
 
   createdAt DateTime @default(now())
@@ -109,15 +150,14 @@ model RequirementAssignment {
   @@index([recruiterId, isActive])
 }
 
-
 model RequirementStatusHistory {
-  id             String           @id @default(cuid())
+  id             String            @id @default(cuid())
   requirementId  String
   previousStatus RequirementStatus
   newStatus      RequirementStatus
   reason         String
   changedById    String
-  createdAt      DateTime         @default(now())
+  createdAt      DateTime          @default(now())
 
   requirement Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
   changedBy   User        @relation("RequirementStatusChangedBy", fields: [changedById], references: [id])

@@ -5,8 +5,9 @@ import { useState } from "react";
 import CreateRecruiterForm from "./create-recruiter-form";
 import CreateRequirementForm from "./create-requirement-form";
 import ManageRequirements from "./manage-requirements";
+import VendorManagement from "./vendor-management";
 
-type Tab = "recruiter" | "requirement" | "manage";
+type Tab = "recruiter" | "requirement" | "manage" | "vendor";
 
 export default function AdminTabs() {
   const [activeTab, setActiveTab] = useState<Tab>("recruiter");
@@ -57,6 +58,16 @@ export default function AdminTabs() {
         >
           Manage Requirements
         </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "vendor"}
+          aria-controls="vendor-panel"
+          onClick={() => setActiveTab("vendor")}
+          className={tabClass("vendor")}
+        >
+          Vendor Management
+        </button>
       </div>
 
       <div
@@ -81,6 +92,13 @@ export default function AdminTabs() {
         hidden={activeTab !== "manage"}
       >
         <ManageRequirements />
+      </div>
+      <div
+        role="tabpanel"
+        id="vendor-panel"
+        hidden={activeTab !== "vendor"}
+      >
+        <VendorManagement />
       </div>
     </section>
   );
