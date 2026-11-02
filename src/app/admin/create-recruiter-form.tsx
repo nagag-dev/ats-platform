@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, type FormEvent } from "react";
@@ -22,7 +21,9 @@ export default function CreateRecruiterForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: formData.get("name"),
+          firstName: formData.get("firstName"),
+          middleName: formData.get("middleName"),
+          lastName: formData.get("lastName"),
           email: formData.get("email"),
           password: formData.get("password"),
         }),
@@ -35,7 +36,10 @@ export default function CreateRecruiterForm() {
         return;
       }
 
-      setMessage(`Recruiter created: ${result.user.name} (${result.user.email})`);
+      setMessage(
+        `Recruiter created: ${result.user.name} (${result.user.email})`
+      );
+
       form.reset();
     } catch {
       setError("Could not connect to the server. Please try again.");
@@ -49,30 +53,61 @@ export default function CreateRecruiterForm() {
       <h2 className="text-xl font-semibold text-slate-900">
         Create Recruiter
       </h2>
+
       <p className="mt-1 text-sm text-slate-500">
         Create an account for a recruitment team member.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-4">
         <div>
-          <label htmlFor="recruiter-name" className="mb-1 block text-sm font-medium">
-            Full name
+          <label htmlFor="recruiter-first-name" className="mb-1 block text-sm font-medium">
+            First Name
           </label>
           <input
-            id="recruiter-name"
-            name="name"
+            id="recruiter-first-name"
+            name="firstName"
             type="text"
             required
-            maxLength={100}
-            autoComplete="name"
+            maxLength={50}
+            autoComplete="given-name"
             className="w-full rounded-lg border border-slate-300 px-3 py-2"
-            placeholder="Recruiter name"
+            placeholder="Enter first name"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="recruiter-middle-name" className="mb-1 block text-sm font-medium">
+            Middle Name (Optional)
+          </label>
+          <input
+            id="recruiter-middle-name"
+            name="middleName"
+            type="text"
+            maxLength={50}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2"
+            placeholder="Enter middle name"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="recruiter-last-name" className="mb-1 block text-sm font-medium">
+            Last Name
+          </label>
+          <input
+            id="recruiter-last-name"
+            name="lastName"
+            type="text"
+            required
+            maxLength={50}
+            autoComplete="family-name"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2"
+            placeholder="Enter last name"
           />
         </div>
 
         <div>
           <label htmlFor="recruiter-email" className="mb-1 block text-sm font-medium">
-            Email address
+            Email Address
           </label>
           <input
             id="recruiter-email"
@@ -88,7 +123,7 @@ export default function CreateRecruiterForm() {
 
         <div>
           <label htmlFor="recruiter-password" className="mb-1 block text-sm font-medium">
-            Temporary password
+            Temporary Password
           </label>
           <input
             id="recruiter-password"

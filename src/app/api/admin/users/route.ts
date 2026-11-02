@@ -1,4 +1,3 @@
-
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hash } from "bcryptjs";
@@ -44,16 +43,52 @@ export async function POST(request: Request) {
   }
 
   const data = body as Record<string, unknown>;
-  const name = typeof data.name === "string" ? data.name.trim() : "";
+
+  const firstName =
+    typeof data.firstName === "string" ? data.firstName.trim() : "";
+
+  const middleName =
+    typeof data.middleName === "string" ? data.middleName.trim() : "";
+
+  const lastName =
+    typeof data.lastName === "string" ? data.lastName.trim() : "";
+
   const email =
     typeof data.email === "string"
       ? data.email.trim().toLowerCase()
       : "";
-  const password = typeof data.password === "string" ? data.password : "";
 
-  if (!name || name.length > 100) {
+  const password =
+    typeof data.password === "string" ? data.password : "";
+
+  if (!firstName || firstName.length > 50) {
     return NextResponse.json(
-      { error: "Name is required and must be under 100 characters." },
+      { error: "First name is required and must be under 50 characters." },
+      { status: 400 }
+    );
+  }
+
+  if (middleName.length > 50) {
+    return NextResponse.json(
+      { error: "Middle name must be under 50 characters." },
+      { status: 400 }
+    );
+  }
+
+  if (!lastName || lastName.length > 50) {
+    return NextResponse.json(
+      { error: "Last name is required and must be under 50 characters." },
+      { status: 400 }
+    );
+  }
+
+  const name = [firstName, middleName, lastName]
+    .filter(Boolean)
+    .join(" ");
+
+  if (name.length > 100) {
+    return NextResponse.json(
+      { error: "Combined name must be under 100 characters." },
       { status: 400 }
     );
   }
@@ -82,6 +117,9 @@ export async function POST(request: Request) {
     const user = await prisma.user.create({
       data: {
         name,
+        firstName,
+        middleName: middleName || null,
+        lastName,
         email,
         passwordHash,
         role: "RECRUITER",
@@ -90,6 +128,9 @@ export async function POST(request: Request) {
       select: {
         id: true,
         name: true,
+        firstName: true,
+        middleName: true,
+        lastName: true,
         email: true,
         role: true,
         isActive: true,
@@ -118,6 +159,51 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       { error: "Unable to create the user right now." },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET() {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Please log in first." },
+        { status: 401 }
+      );
+    }
+
+    if (session.user.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Administrator access required." },
+        { status: 403 }
+      );
+    }
+
+    const recruiters = await prisma.user.findMany({
+      where: {
+        role: "RECRUITER",
+        isActive: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        firstName: true,
+        middleName: true,
+        lastName: true,
+        email: true,
+      },
+      orderBy: { name: "asc" },
+    });
+
+    return NextResponse.json({ recruiters });
+  } catch (error) {
+    console.error("Fetch recruiters failed:", error);
+
+    return NextResponse.json(
+      { error: "Unable to load recruiters right now." },
       { status: 500 }
     );
   }
